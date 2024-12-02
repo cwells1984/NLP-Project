@@ -1,0 +1,6 @@
+argostranslate
+faiss-cpu
+ir_datasets
+numpy
+pandas
+spacy
