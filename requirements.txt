@@ -3,4 +3,5 @@ faiss-cpu
 ir_datasets
 numpy
 pandas
+scikit-learn
 spacy

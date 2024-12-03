@@ -95,7 +95,7 @@ class ForeignDocumentsIndex:
         fd_index.language = data["language"]
         return fd_index
 
-    # Returns the K-nearest results in the index for the query
+    # Returns the K-nearest results in the index for the query and a list of what we expect (the most relevant docs)
     # Returns 2-tuple (distance, article title)
     def search_index(self, query, k=5):
         query_vector = self.nlp(query).vector

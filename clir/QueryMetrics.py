@@ -1,6 +1,7 @@
-from clir.QueryTranslator import QueryTranslator
+from sklearn.metrics import ndcg_score
 
 import ir_datasets
+import numpy as np
 import pickle
 
 class QueryMetrics:
@@ -86,7 +87,9 @@ class QueryMetrics:
 
         return qm
 
-    def get_query_results(self, translator, faiss_index):
+    def get_query_results(self, translator, faiss_index, k=5):
+
+        ndcg_avg = list()
 
         # For each of our queries:
         for i in range(0, len(self.ht_query_titles)):
@@ -106,17 +109,34 @@ class QueryMetrics:
             else:
                 rel1_docs = []
 
+            # Get the relevant docs for the query
+            true_docs = []
+            if query_title in self.query_to_rel3_docs:
+                true_docs += [3 for i in range(0, len(self.query_to_rel3_docs[query_title]))]
+            if query_title in self.query_to_rel1_docs:
+                true_docs += [1 for i in range(0, len(self.query_to_rel1_docs[query_title]))]
+            true_docs += [0 for i in range(0,k)]
+            true_docs = true_docs[0:k]
+
             # Now search the index
-            print(f"Searching {query_title} ({ht_query_title})")
             print(f"Searching {query_title} ({mt_query_title})")
-            for r in faiss_index.search_index(mt_query_title):
+            print(f"Actual {true_docs}")
+            predicted_docs = []
+            for r in faiss_index.search_index(mt_query_title, k=k):
                 if r[1] in rel3_docs:
                     print(f"R3 {r[0]} - {r[1]}")
+                    predicted_docs.append(3)
                 elif r[1] in rel1_docs:
                     print(f"R1 {r[0]} - {r[1]}")
+                    predicted_docs.append(1)
                 else:
                     print(f"R0 {r[0]} - {r[1]}")
+                    predicted_docs.append(0)
+            print(f"Predicted {predicted_docs}")
+            ndcg_avg.append(ndcg_score([true_docs], [predicted_docs]))
             print("===========================")
+
+        print(f"NDCG Average = {np.mean(ndcg_avg)}")
 
     def save_metrics(self, query_file):
         pickle_data = {"queries": self.query_titles,
