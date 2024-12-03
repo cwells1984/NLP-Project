@@ -7,4 +7,4 @@ if __name__ == "__main__":
                                              "storage/ru_metadata")
     qm = QueryMetrics.load_metrics("storage/ru_queries")
     translator = QueryTranslator("en", index.language)
-    qm.get_query_results(translator, index)
+    qm.get_query_results(translator, index, k=5)

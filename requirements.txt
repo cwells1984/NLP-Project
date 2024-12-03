@@ -1,7 +1,9 @@
 argostranslate
 faiss-cpu
 ir_datasets
+nltk
 numpy
 pandas
 scikit-learn
+sense2vec
 spacy
