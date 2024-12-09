@@ -15,6 +15,19 @@ class ForeignDocumentsIndex:
         self.queries = None
         self.faiss_index = None
 
+    @staticmethod
+    def create_doc_vector_baseline(index, doc_text):
+        return index.nlp(doc_text).vector
+
+    @staticmethod
+    def create_doc_vector_no_stopwords(index, doc_text):
+        doc = index.nlp(doc_text)
+        doc_no_stopwords = []
+        for token in doc:
+            if not token.is_stop:
+                doc_no_stopwords.append(token.text)
+        return index.nlp(" ".join(doc_no_stopwords)).vector
+
     # ex. ForeignDocumentsIndex(nlp_language="ru_core_news_sm", neuclir_docs="neuclir/1/ru/hc4-filtered", docs_limit=50)
     @staticmethod
     def create_index(nlp_language, neuclir_docs, docs_limit=None, relevant_docs=None, language="ru"):
@@ -38,7 +51,9 @@ class ForeignDocumentsIndex:
             for foreign_doc in foreign_docs.docs_iter()[:docs_limit]:
                 added_doc_ids.append(foreign_doc[0])
                 fd_index.foreign_doc_titles.append(foreign_doc[1])
-                foreign_doc_vectors.append(fd_index.nlp(foreign_doc[1] + " " + foreign_doc[2]).vector)
+                foreign_doc_vectors.append(
+                    ForeignDocumentsIndex.create_doc_vector_baseline(fd_index,
+                                                                     foreign_doc[1] + " " + foreign_doc[2]))
                 if i % 100 == 0:
                     print(f"Processing document {i}/{docs_limit}")
                 i += 1
@@ -46,7 +61,9 @@ class ForeignDocumentsIndex:
             for foreign_doc in foreign_docs.docs_iter()[:docs_limit]:
                 added_doc_ids.append(foreign_doc[0])
                 fd_index.foreign_doc_titles.append(foreign_doc[1])
-                foreign_doc_vectors.append(fd_index.nlp(foreign_doc[1] + " " + foreign_doc[2]).vector)
+                foreign_doc_vectors.append(
+                    ForeignDocumentsIndex.create_doc_vector_baseline(fd_index,
+                                                                     foreign_doc[1] + " " + foreign_doc[2]))
                 if i % 100 == 0:
                     print(f"Processing document {i}/{foreign_docs.docs_count()}")
                 i += 1
@@ -98,7 +115,7 @@ class ForeignDocumentsIndex:
     # Returns the K-nearest results in the index for the query and a list of what we expect (the most relevant docs)
     # Returns 2-tuple (distance, article title)
     def search_index(self, query, k=5):
-        query_vector = self.nlp(query).vector
+        query_vector = ForeignDocumentsIndex.create_doc_vector_baseline(self, query)
         distances, found_indexes = self.faiss_index.search(np.array([query_vector]), k)
         results = []
         for i in range(0, len(found_indexes[0])):
@@ -111,12 +128,12 @@ if __name__ == "__main__":
 
     # Create the index from scratch, comment out if we are using an existing one
     qm = QueryMetrics.create_relevance_maps("neuclir/1/ru/hc4-filtered")
-    index = ForeignDocumentsIndex.create_index(nlp_language="ru_core_news_lg",
+    index = ForeignDocumentsIndex.create_index(nlp_language="ru_core_news_sm",
                                                neuclir_docs="neuclir/1/ru/hc4-filtered",
-                                               docs_limit=10000,
+                                               docs_limit=1000,
                                                relevant_docs=qm.relevant_doc_ids,
                                                language="ru")
-    index.save_index("../storage/ru_index", "../storage/ru_metadata")
+    index.save_index("../storage/ru_index_sm", "../storage/ru_metadata_sm")
 
     # Now try a query vector = вирус ("virus") and confirm results
     query = "вирус"

@@ -90,6 +90,8 @@ class QueryMetrics:
     def get_query_results(self, translator, faiss_index, k=5):
 
         ndcg_avg = list()
+        prec_avg = list()
+        dist_avg = list()
 
         # For each of our queries:
         for i in range(0, len(self.ht_query_titles)):
@@ -122,21 +124,28 @@ class QueryMetrics:
             print(f"Searching {query_title} ({mt_query_title})")
             print(f"Actual {true_docs}")
             predicted_docs = []
+            num_relevant = 0
             for r in faiss_index.search_index(mt_query_title, k=k):
+                dist_avg.append(r[0])
                 if r[1] in rel3_docs:
                     print(f"R3 {r[0]} - {r[1]}")
                     predicted_docs.append(3)
+                    num_relevant += 1
                 elif r[1] in rel1_docs:
                     print(f"R1 {r[0]} - {r[1]}")
                     predicted_docs.append(1)
+                    num_relevant += 1
                 else:
                     print(f"R0 {r[0]} - {r[1]}")
                     predicted_docs.append(0)
             print(f"Predicted {predicted_docs}")
             ndcg_avg.append(ndcg_score([true_docs], [predicted_docs]))
+            prec_avg.append(num_relevant/k)
             print("===========================")
 
         print(f"NDCG Average = {np.mean(ndcg_avg)}")
+        print(f"Precision @{k} Average = {np.mean(prec_avg)}")
+        print(f"Average Cosine distance = {np.mean(dist_avg)}")
 
     def save_metrics(self, query_file):
         pickle_data = {"queries": self.query_titles,
@@ -163,10 +172,10 @@ if __name__ == "__main__":
 
     # Create the relevance maps from scratch, comment out if we are using an existing one
     qm = QueryMetrics.create_relevance_maps("neuclir/1/ru/hc4-filtered")
-    qm.save_metrics("../storage/ru_queries")
+    qm.save_metrics("../storage/ru_queries_sm")
 
     # Load an existing index, comment out if we are building a brand-new one
-    qm = QueryMetrics.load_metrics("../storage/ru_queries")
+    qm = QueryMetrics.load_metrics("../storage/ru_queries_sm")
 
     # Now confirm some of our queries
     print(qm.query_to_rel1_docs["British royal news impacts"])
